@@ -1,0 +1,35 @@
+# Unraid: drop this in a share (e.g. /mnt/user/appdata/claude-usage-tracker) and
+# `docker compose up -d`, or add it through the Compose Manager plugin.
+services:
+  tracker:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: claude-usage-tracker
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    environment:
+      TRACKER_TOKEN: ${TRACKER_TOKEN:-change-me}
+      TRACKER_DB: /data/tracker.db
+      TZ: America/New_York
+    volumes:
+      - /mnt/user/appdata/claude-usage-tracker/data:/data
+      # optional: a git checkout of the relay repo scheduled tasks push run summaries to
+      - /mnt/user/appdata/claude-usage-tracker/relay:/relay:ro
+
+  # Nightly analyzers. Rule-based ones need nothing; LLM-backed ones run through
+  # `claude -p` on a machine that is logged into the account (see docs/agents.md),
+  # so this container only runs the rule-based set by default.
+  analyzers:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: claude-usage-analyzers
+    restart: unless-stopped
+    environment:
+      TRACKER_DB: /data/tracker.db
+      TZ: America/New_York
+    volumes:
+      - /mnt/user/appdata/claude-usage-tracker/data:/data
+    entrypoint: ["sh", "-c", "while true; do python -m analyzers.run --db $$TRACKER_DB --rules; sleep 86400; done"]

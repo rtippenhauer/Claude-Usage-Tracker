@@ -1,0 +1,3 @@
+collector/collector.toml
+__pycache__/
+*.db

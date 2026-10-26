@@ -1,0 +1,36 @@
+# Copy to collector.toml next to collect.py (or pass --config).
+# One file per machine. The account tag is what keeps work and personal separate.
+
+[account]
+name    = "personal"          # 'work' on the work machine
+label   = "Personal (Pro)"
+plan    = "pro"
+
+[server]
+# Unraid tracker. Leave url empty to spool batches locally (offline / air-gapped).
+url     = "http://unraid.local:8787"
+token   = "change-me"         # must match TRACKER_TOKEN on the server
+spool_dir = "~/.claude-usage-tracker/spool"   # written when the server is unreachable
+
+[sources]
+# Claude Code transcript roots. ~ expands. Windows: "C:/Users/rob/.claude/projects"
+transcript_dirs = ["~/.claude/projects"]
+# Instruction files to snapshot for the audits.
+claude_md_globs = [
+  "~/.claude/CLAUDE.md",
+  "~/.claude/commands/**/*.md",
+  "~/.claude/skills/**/SKILL.md",
+  "~/.claude/agents/**/*.md",
+]
+# Also look for CLAUDE.md / .claude/ under every project dir seen in transcripts.
+discover_project_claude_md = true
+# Scheduled-task prompts exported with `collect.py tasks --from tasks.json`.
+tasks_export = "~/.claude-usage-tracker/tasks.json"
+
+[privacy]
+# Store prompt excerpts (first 200 chars) for repeat detection. Set false to store hashes only.
+store_prompt_excerpts = true
+# Store full CLAUDE.md / command content (needed for the duplicate-instruction audit).
+store_context_content = true
+# Never ship sessions whose project dir matches these.
+exclude_project_globs = []

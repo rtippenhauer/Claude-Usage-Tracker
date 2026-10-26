@@ -1,0 +1,3 @@
+# Linux/macOS: crontab -e, paste (adjust path). Hourly incremental ship + flush spool.
+17 * * * * cd /path/to/claude-usage-tracker && python3 collector/collect.py run >> ~/.claude-usage-tracker/collector.log 2>&1
+47 * * * * cd /path/to/claude-usage-tracker && python3 collector/collect.py flush >> ~/.claude-usage-tracker/collector.log 2>&1

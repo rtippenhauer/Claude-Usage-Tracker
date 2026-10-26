@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Usage Review</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f6f5f2; --surface: #fcfcfb; --surface-2: #f0efeb; --line: #e1dfd9; --grid: #ebe9e4;
+  --ink: #0b0b0b; --ink-2: #52514e; --ink-3: #85837d;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s7: #6250d6;
+  --seq-100: #cde2fb; --seq-250: #86b6ef; --seq-400: #3987e5; --seq-550: #1c5cab; --seq-700: #0d366b;
+  --high: #c0392b; --medium: #b86e00; --low: #52514e; --info: #52514e;
+  --shadow: 0 1px 2px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121211; --surface: #1a1a19; --surface-2: #232321; --line: #353533; --grid: #2a2a28;
+    --ink: #f0efec; --ink-2: #c3c2b7; --ink-3: #8f8e86;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s7: #9085e9;
+    --seq-100: #0d366b; --seq-250: #104281; --seq-400: #2a78d6; --seq-550: #5598e7; --seq-700: #9ec5f4;
+    --high: #e66767; --medium: #e0a030; --low: #c3c2b7; --info: #c3c2b7;
+    --shadow: none;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+code, pre, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+header { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); padding: 10px 16px;
+  display: flex; flex-wrap: wrap; gap: 10px 20px; align-items: center; }
+header h1 { font-size: 16px; margin: 0 8px 0 0; font-weight: 650; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: transparent; color: var(--ink-2); padding: 5px 12px; font: inherit; cursor: pointer; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.seen { color: var(--ink-3); font-size: 12px; margin-left: auto; }
+main { max-width: 1280px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+section.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); min-width: 0; }
+section.card > h2 { margin: 0 0 10px; font-size: 13px; font-weight: 650; letter-spacing: .02em; color: var(--ink-2); text-transform: uppercase; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+h2 .sub { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--ink-3); }
+.grid2 { display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+.tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.tile .lbl { color: var(--ink-2); font-size: 12px; margin-bottom: 6px; }
+.tile .row { display: flex; align-items: baseline; gap: 8px; }
+.tile .val { font-size: 24px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.tile .acct { font-size: 11px; color: var(--ink-3); min-width: 52px; }
+.tile .note { font-size: 11px; color: var(--ink-3); }
+.empty { color: var(--ink-3); padding: 14px 0; }
+.empty code { background: var(--surface-2); padding: 1px 6px; border-radius: 4px; color: var(--ink-2); }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--grid); vertical-align: middle; }
+th { font-size: 12px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+td.n, th.n { text-align: right; }
+.scroll { overflow-x: auto; }
+tbody tr.click { cursor: pointer; }
+tbody tr.click:hover { background: var(--surface-2); }
+tr.grp td { background: var(--surface-2); font-weight: 600; color: var(--ink-2); }
+.trunc { max-width: 280px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink-2); }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 11px; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); }
+.bar { height: 8px; border-radius: 0 4px 4px 0; background: var(--s1); min-width: 2px; }
+.barcell { width: 36%; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ink-2); margin-bottom: 6px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.legend i.ln { height: 2px; vertical-align: 3px; width: 14px; }
+.panelhead { font-size: 12px; color: var(--ink-2); font-weight: 600; margin: 8px 0 2px; }
+svg text { fill: var(--ink-3); font: 11px system-ui, sans-serif; }
+svg .gl { stroke: var(--grid); stroke-width: 1; }
+/* findings */
+.finding { border: 1px solid var(--line); border-left-width: 4px; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+.finding.high { border-left-color: var(--high); } .finding.medium { border-left-color: var(--medium); }
+.finding.low, .finding.info { border-left-color: var(--ink-3); }
+.finding .top { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.finding .title { font-weight: 600; flex: 1 1 260px; }
+.sev { font-size: 11px; font-weight: 650; text-transform: uppercase; }
+.sev.high { color: var(--high); } .sev.medium { color: var(--medium); } .sev.low, .sev.info { color: var(--ink-2); }
+.rec { color: var(--ink-2); margin: 6px 0; }
+button.btn { font: inherit; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; padding: 3px 10px; cursor: pointer; }
+button.btn:hover { background: var(--surface-2); }
+details summary { cursor: pointer; color: var(--ink-2); font-size: 12px; }
+.md { padding: 6px 0; } .md h4 { margin: 8px 0 4px; font-size: 13px; } .md ul { margin: 4px 0; padding-left: 20px; }
+.md code { background: var(--surface-2); padding: 0 4px; border-radius: 3px; }
+.md pre { background: var(--surface-2); padding: 8px; border-radius: 6px; overflow-x: auto; }
+/* drawer */
+#drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(720px, 100vw); background: var(--surface); border-left: 1px solid var(--line);
+  z-index: 20; transform: translateX(100%); transition: transform .18s; overflow-y: auto; padding: 16px; box-shadow: -8px 0 24px rgba(0,0,0,.15); }
+#drawer.open { transform: none; }
+#drawer .close { float: right; }
+#tip { position: fixed; z-index: 30; pointer-events: none; background: var(--ink); color: var(--surface); padding: 5px 8px; border-radius: 6px; font-size: 12px; display: none; white-space: pre; max-width: 320px; }
+/* meter */
+.mrow { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.mrow .name { width: 150px; font-size: 12px; color: var(--ink-2); flex: none; }
+.cells { display: flex; gap: 2px; flex-wrap: wrap; }
+.cell { width: 22px; height: 18px; border-radius: 3px; font-size: 9px; text-align: center; line-height: 18px; color: var(--ink); }
+.err { color: var(--high); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Claude usage review</h1>
+  <div class="seg" id="acctSel" role="group" aria-label="Account"></div>
+  <div class="seg" id="daySel" role="group" aria-label="Window"></div>
+  <div class="seen" id="seen"></div>
+</header>
+<main>
+  <div class="tiles" id="tiles"></div>
+  <section class="card"><h2>Daily tokens <span class="sub">context stacked by source, output on its own scale below</span></h2><div id="daily"></div></section>
+  <div class="grid2">
+    <section class="card"><h2>Model mix <span class="sub">context tokens</span></h2><div id="models"></div></section>
+    <section class="card"><h2>Meter <span class="sub">claude.ai pct used per day</span></h2><div id="meter"></div></section>
+  </div>
+  <section class="card"><h2>Findings <span class="sub" id="findSub"></span></h2><div id="findings"></div></section>
+  <section class="card"><h2>Sessions
+    <span class="seg" id="sortSel" role="group" aria-label="Sort"></span></h2>
+    <div class="scroll" id="sessions"></div></section>
+  <div class="grid2">
+    <section class="card"><h2>Tools and MCP <span class="sub">result size is what lands in context</span></h2><div class="scroll" id="tools"></div></section>
+    <section class="card"><h2>Context files <span class="sub">instruction files loaded into every session</span></h2><div id="ctx"></div></section>
+  </div>
+  <section class="card"><h2>Scheduled tasks</h2><div class="scroll" id="tasks"></div></section>
+</main>
+<aside id="drawer" aria-label="Session detail"></aside>
+<div id="tip"></div>
+
+<script>
+"use strict";
+// ---------------------------------------------------------------- state and helpers
+const $ = (id) => document.getElementById(id);
+const state = { account: "all", days: 30, sort: "waste", accounts: [] };
+try {
+  const saved = JSON.parse(localStorage.getItem("tracker-state") || "{}");
+  if (saved.account) state.account = saved.account;
+  if ([7, 30, 90].includes(saved.days)) state.days = saved.days;
+  if (saved.sort) state.sort = saved.sort;
+} catch (e) { /* storage unavailable */ }
+function saveState() { try { localStorage.setItem("tracker-state", JSON.stringify({ account: state.account, days: state.days, sort: state.sort })); } catch (e) {} }
+
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const num = (v) => Number(v) || 0;
+function fmt(n) {
+  n = num(n);
+  const a = Math.abs(n);
+  if (a >= 1e9) return (n / 1e9).toFixed(a >= 1e10 ? 0 : 1) + "B";
+  if (a >= 1e6) return (n / 1e6).toFixed(a >= 1e7 ? 0 : 1) + "M";
+  if (a >= 1e3) return (n / 1e3).toFixed(a >= 1e4 ? 0 : 1) + "k";
+  return String(Math.round(n));
+}
+const pct = (r) => (num(r) * 100).toFixed(num(r) >= 0.995 || num(r) === 0 ? 0 : 1) + "%";
+const base = (p) => (p || "").replace(/\/+$/, "").split("/").pop() || p || "-";
+const trunc = (s, n) => (s && s.length > n ? s.slice(0, n - 1) + "…" : s || "");
+const shortDate = (ts) => (ts || "").slice(5, 16).replace("T", " ");
+const emptyMsg = (what, cmd) => `<div class="empty">No ${what} yet${cmd ? ` &mdash; run <code>${esc(cmd)}</code>` : ""}.</div>`;
+
+function qs(extra = {}) {
+  const p = new URLSearchParams();
+  if (state.account !== "all") p.set("account", state.account);
+  for (const [k, v] of Object.entries(extra)) p.set(k, v);
+  return p.toString();
+}
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  if (!r.ok) throw new Error(path + " -> " + r.status);
+  return r.json();
+}
+// run a loader, show an error inside its target if it fails
+async function guard(targetId, fn) {
+  try { await fn(); } catch (e) { $(targetId).innerHTML = `<div class="empty err">Failed to load: ${esc(e.message)}</div>`; }
+}
+
+// tooltip: any element with data-tip
+const tip = $("tip");
+document.addEventListener("mouseover", (e) => {
+  const t = e.target.closest && e.target.closest("[data-tip]");
+  if (!t) { tip.style.display = "none"; return; }
+  tip.textContent = t.getAttribute("data-tip");
+  tip.style.display = "block";
+});
+document.addEventListener("mousemove", (e) => {
+  if (tip.style.display === "none") return;
+  const w = tip.offsetWidth;
+  tip.style.left = Math.min(e.clientX + 12, innerWidth - w - 8) + "px";
+  tip.style.top = e.clientY + 14 + "px";
+});
+
+// accounts shown in side-by-side views
+function shownAccounts() {
+  return state.account === "all" ? state.accounts.map((a) => a.account) : [state.account];
+}
+
+// minimal markdown: headings, bullets, fenced and inline code, bold
+function md(src) {
+  const lines = String(src || "").split("\n");
+  let out = "", inList = false, inCode = false;
+  const inline = (t) => esc(t).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
+  const closeList = () => { if (inList) { out += "</ul>"; inList = false; } };
+  for (const line of lines) {
+    if (line.trim().startsWith("```")) { closeList(); out += inCode ? "</pre>" : "<pre>"; inCode = !inCode; continue; }
+    if (inCode) { out += esc(line) + "\n"; continue; }
+    let m;
+    if ((m = line.match(/^#{1,6}\s+(.*)/))) { closeList(); out += `<h4>${inline(m[1])}</h4>`; }
+    else if ((m = line.match(/^\s*[-*]\s+(.*)/))) { if (!inList) { out += "<ul>"; inList = true; } out += `<li>${inline(m[1])}</li>`; }
+    else if (!line.trim()) { closeList(); }
+    else { closeList(); out += `<p style="margin:4px 0">${inline(line)}</p>`; }
+  }
+  closeList(); if (inCode) out += "</pre>";
+  return out;
+}
+
+// ---------------------------------------------------------------- header
+function renderHeader() {
+  const a = $("acctSel");
+  const names = ["all", ...state.accounts.map((x) => x.account)];
+  a.innerHTML = names.map((n) => `<button data-v="${esc(n)}" aria-pressed="${n === state.account}">${n === "all" ? "All" : esc(n)}</button>`).join("");
+  const d = $("daySel");
+  d.innerHTML = [7, 30, 90].map((n) => `<button data-v="${n}" aria-pressed="${n === state.days}">${n} days</button>`).join("");
+  const sorts = [["waste", "Waste"], ["context", "Context"], ["output", "Output"], ["cache", "Cache"], ["recent", "Recent"]];
+  $("sortSel").innerHTML = sorts.map(([k, l]) => `<button data-v="${k}" aria-pressed="${k === state.sort}">${l}</button>`).join("");
+  // /api/accounts gives one last_seen per account (max over machines); no per-machine list is exposed
+  $("seen").textContent = state.accounts.length
+    ? "Last seen: " + state.accounts.map((x) => `${x.account} ${x.last_seen ? shortDate(x.last_seen) : "never"}`).join(" | ")
+    : "No accounts yet";
+}
+$("acctSel").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { state.account = b.dataset.v; refresh(); } });
+$("daySel").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { state.days = +b.dataset.v; refresh(); } });
+$("sortSel").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { state.sort = b.dataset.v; saveState(); renderHeader(); guard("sessions", loadSessions); } });
+
+// ---------------------------------------------------------------- summary tiles and models and meter
+async function loadSummary() {
+  const s = await api("/api/summary?" + qs({ days: state.days }));
+  const accts = shownAccounts();
+  const tot = Object.fromEntries(s.totals.map((t) => [t.account, t]));
+  const openF = {};
+  for (const f of s.findings) {
+    const o = (openF[f.account] ||= { n: 0, waste: 0 });
+    o.n += num(f.n); o.waste += num(f.est_tokens_wasted);
+  }
+  const tiles = [
+    ["Context tokens", (t) => fmt(t.context_tokens), "input + cache create + cache read"],
+    ["Output tokens", (t) => fmt(t.output_tokens), ""],
+    ["Cache hit", (t) => pct(t.cache_hit_ratio), "cache read / context"],
+    ["Calls", (t) => fmt(t.calls), ""],
+    ["Sessions", (t) => fmt(t.sessions), ""],
+  ];
+  let html = tiles.map(([label, f, note]) => `<div class="tile"><div class="lbl">${label}</div>` +
+    accts.map((a) => `<div class="row">${accts.length > 1 ? `<span class="acct">${esc(a)}</span>` : ""}<span class="val">${tot[a] ? f(tot[a]) : "-"}</span></div>`).join("") +
+    (note ? `<div class="note">${note}</div>` : "") + `</div>`).join("");
+  html += `<div class="tile"><div class="lbl">Open findings</div>` + accts.map((a) => {
+    const o = openF[a] || { n: 0, waste: 0 };
+    return `<div class="row">${accts.length > 1 ? `<span class="acct">${esc(a)}</span>` : ""}<span class="val">${o.n}</span><span class="note">~${fmt(o.waste)} wasted</span></div>`;
+  }).join("") + `</div>`;
+  $("tiles").innerHTML = html;
+  renderModels(s.models, accts);
+  renderMeter(s.meters, accts);
+}
+
+function renderModels(models, accts) {
+  if (!models.length) { $("models").innerHTML = emptyMsg("model usage", "python -m collector ship"); return; }
+  const max = Math.max(...models.map((m) => num(m.context_tokens)), 1);
+  let html = "";
+  for (const a of accts) {
+    const rows = models.filter((m) => m.account === a);
+    if (!rows.length) continue;
+    if (accts.length > 1) html += `<div class="panelhead">${esc(a)}</div>`;
+    html += `<table><tbody>` + rows.map((m) => `<tr><td class="mono" style="width:34%">${esc(m.model || "unknown")}</td>
+      <td class="barcell"><div class="bar" style="width:${(num(m.context_tokens) / max * 100).toFixed(1)}%" data-tip="${esc(m.model)}\n${fmt(m.context_tokens)} context\n${fmt(m.calls)} calls"></div></td>
+      <td class="n">${fmt(m.context_tokens)}</td></tr>`).join("") + `</tbody></table>`;
+  }
+  $("models").innerHTML = html;
+}
+
+function renderMeter(meters, accts) {
+  const rows = (meters || []).filter((m) => m.value !== null && m.value !== "");
+  if (!rows.length) { $("meter").innerHTML = emptyMsg("claude.ai meter snapshots", "python -m collector meter"); return; }
+  const groups = {};
+  for (const r of rows) (groups[`${r.account} / ${r.surface}`] ||= []).push(r);
+  $("meter").innerHTML = Object.entries(groups).map(([name, rs]) => `<div class="mrow"><div class="name">${esc(name)}</div><div class="cells">` +
+    rs.map((r) => {
+      const v = Math.max(0, Math.min(100, parseFloat(r.value) || 0));
+      const step = v < 20 ? "100" : v < 50 ? "250" : v < 75 ? "400" : v < 90 ? "550" : "700";
+      const light = step === "100" || step === "250";
+      return `<div class="cell" style="background:var(--seq-${step});${light ? "" : "color:#fff"}" data-tip="${esc(r.date)}\n${v}% used">${Math.round(v)}</div>`;
+    }).join("") + `</div></div>`).join("") + `<div class="note" style="color:var(--ink-3);font-size:11px;margin-top:6px">Darker means closer to the limit.</div>`;
+}
+
+// ---------------------------------------------------------------- daily chart
+function dayList(n) {
+  const out = [], now = new Date();
+  for (let i = n - 1; i >= 0; i--) out.push(new Date(now.getTime() - i * 864e5).toISOString().slice(0, 10));
+  return out;
+}
+const SERIES = [
+  { key: "cache_read_tokens", label: "Cache read", color: "var(--s1)" },
+  { key: "cache_create_tokens", label: "Cache create", color: "var(--s2)" },
+  { key: "input_tokens", label: "Input (uncached)", color: "var(--s3)" },
+];
+
+function niceMax(v) {
+  if (v <= 0) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p;
+}
+
+function dailyChart(days, byDay, width) {
+  const H1 = 190, H2 = 60, padL = 44, padR = 8, padT = 8, gap = 22;
+  const W = width, iw = W - padL - padR, bw = iw / days.length;
+  const totals = days.map((d) => SERIES.reduce((s, k) => s + num(byDay[d]?.[k.key]), 0));
+  const maxC = niceMax(Math.max(...totals, 1));
+  const outs = days.map((d) => num(byDay[d]?.output_tokens));
+  const maxO = niceMax(Math.max(...outs, 1));
+  const y1 = (v) => padT + H1 - (v / maxC) * H1;
+  const topO = padT + H1 + gap, y2 = (v) => topO + H2 - (v / maxO) * H2;
+  const x = (i) => padL + i * bw;
+  let s = `<svg width="${W}" height="${topO + H2 + 20}" role="img" aria-label="Daily token chart">`;
+  for (let t = 0; t <= 4; t++) {
+    const v = (maxC / 4) * t, y = y1(v);
+    s += `<line class="gl" x1="${padL}" x2="${W - padR}" y1="${y}" y2="${y}"/><text x="${padL - 6}" y="${y + 4}" text-anchor="end">${fmt(v)}</text>`;
+  }
+  days.forEach((d, i) => {
+    let acc = 0;
+    const tipTxt = `${d}\n` + SERIES.map((k) => `${k.label}: ${fmt(byDay[d]?.[k.key])}`).join("\n") + `\nOutput: ${fmt(byDay[d]?.output_tokens)}`;
+    SERIES.forEach((k) => {
+      const v = num(byDay[d]?.[k.key]);
+      if (!v) return;
+      const yTop = y1(acc + v), h = y1(acc) - yTop;
+      s += `<rect x="${x(i) + bw * 0.12}" y="${yTop}" width="${Math.max(bw * 0.76, 1)}" height="${Math.max(h, 0.5)}" fill="${k.color}" stroke="var(--surface)" stroke-width="1" data-tip="${esc(tipTxt)}"/>`;
+      acc += v;
+    });
+    // transparent hit column covers the whole day, including empty days
+    s += `<rect x="${x(i)}" y="${padT}" width="${bw}" height="${H1}" fill="transparent" data-tip="${esc(tipTxt)}"/>`;
+  });
+  // output line on its own scale (a second panel, not a second axis)
+  s += `<line class="gl" x1="${padL}" x2="${W - padR}" y1="${y2(0)}" y2="${y2(0)}"/><text x="${padL - 6}" y="${y2(maxO) + 4}" text-anchor="end">${fmt(maxO)}</text><text x="${padL - 6}" y="${y2(0) + 4}" text-anchor="end">0</text>`;
+  const pts = days.map((d, i) => `${x(i) + bw / 2},${y2(outs[i])}`);
+  s += `<polyline points="${pts.join(" ")}" fill="none" stroke="var(--s7)" stroke-width="2" stroke-linejoin="round"/>`;
+  if (days.length <= 31) days.forEach((d, i) => { s += `<circle cx="${x(i) + bw / 2}" cy="${y2(outs[i])}" r="3" fill="var(--s7)" stroke="var(--surface)" stroke-width="2" data-tip="${d}\nOutput: ${fmt(outs[i])}"/>`; });
+  const every = Math.ceil(days.length / Math.max(2, Math.floor(iw / 60)));
+  days.forEach((d, i) => { if (i % every === 0) s += `<text x="${x(i) + bw / 2}" y="${topO + H2 + 14}" text-anchor="middle">${d.slice(5)}</text>`; });
+  return s + `</svg>`;
+}
+
+async function loadDaily() {
+  const rows = await api("/api/daily?" + qs({ days: state.days }));
+  const el = $("daily");
+  if (!rows.length) { el.innerHTML = emptyMsg("usage data", "python -m collector ship"); return; }
+  const days = dayList(state.days);
+  const accts = shownAccounts();
+  const cols = accts.length > 1 ? 2 : 1;
+  const width = Math.max(300, Math.floor((el.clientWidth || 900) / (innerWidth > 900 ? cols : 1)) - 8);
+  let html = `<div class="legend">` + SERIES.map((k) => `<span><i style="background:${k.color}"></i>${k.label}</span>`).join("") +
+    `<span><i class="ln" style="background:var(--s7)"></i>Output (lower panel, own scale)</span></div>`;
+  html += `<div class="${cols > 1 ? "grid2" : ""}">`;
+  for (const a of accts) {
+    const byDay = {};
+    for (const r of rows.filter((r) => r.account === a)) {
+      const o = (byDay[r.day] ||= { input_tokens: 0, cache_create_tokens: 0, cache_read_tokens: 0, output_tokens: 0 });
+      for (const k of Object.keys(o)) o[k] += num(r[k]);
+    }
+    html += `<div>${cols > 1 ? `<div class="panelhead">${esc(a)}</div>` : ""}${dailyChart(days, byDay, width)}</div>`;
+  }
+  el.innerHTML = html + `</div>`;
+}
+
+// ---------------------------------------------------------------- findings
+async function loadFindings() {
+  const f = await api("/api/findings?" + qs({ resolved: 0 }));
+  const el = $("findings");
+  $("findSub").textContent = f.length ? `${f.length} open, ~${fmt(f.reduce((s, x) => s + num(x.est_tokens_wasted), 0))} tokens wasted` : "";
+  if (!f.length) { el.innerHTML = emptyMsg("findings", "python -m analyzers.run --rules"); return; }
+  el.innerHTML = f.map((x) => {
+    let ev = x.evidence;
+    try { ev = JSON.stringify(JSON.parse(x.evidence), null, 2); } catch (e) { /* show raw */ }
+    return `<div class="finding ${esc(x.severity)}" data-id="${x.id}">
+      <div class="top"><span class="sev ${esc(x.severity)}">${esc(x.severity)}</span><span class="pill">${esc(x.analyzer)}</span>
+        <span class="pill">${esc(x.account)}</span><span class="title">${esc(x.title)}</span>
+        <span class="mono" title="estimated tokens wasted">~${fmt(x.est_tokens_wasted)} tokens</span>
+        <button class="btn" data-resolve="${x.id}">Resolve</button></div>
+      ${x.recommendation ? `<div class="rec">${esc(x.recommendation)}</div>` : ""}
+      ${x.detail || ev ? `<details><summary>Evidence and detail</summary><div class="md">${md(x.detail)}${ev ? `<pre>${esc(ev)}</pre>` : ""}</div></details>` : ""}
+    </div>`;
+  }).join("");
+}
+$("findings").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-resolve]");
+  if (!b) return;
+  b.disabled = true;
+  try {
+    await api(`/api/findings/${b.dataset.resolve}/resolve`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+    guard("findings", loadFindings); guard("tiles", loadSummary);
+  } catch (err) { b.disabled = false; b.textContent = "Failed, retry"; }
+});
+
+// ---------------------------------------------------------------- sessions and drawer
+async function loadSessions() {
+  const rows = await api("/api/sessions?" + qs({ days: state.days, sort: state.sort, limit: 50 }));
+  const el = $("sessions");
+  if (!rows.length) { el.innerHTML = emptyMsg("sessions", "python -m collector ship"); return; }
+  el.innerHTML = `<table><thead><tr><th>When</th><th>Account</th><th>Project</th><th>Entry</th><th class="n">Turns</th><th class="n">Calls</th>
+    <th class="n">Context</th><th class="n">Cache</th><th class="n">Output</th><th>Models</th><th>First prompt</th></tr></thead><tbody>` +
+    rows.map((s) => `<tr class="click" data-sid="${esc(s.session_id)}"><td class="mono">${shortDate(s.first_ts)}</td><td>${esc(s.account)}</td>
+      <td title="${esc(s.project_dir)}">${esc(base(s.project_dir))}</td><td><span class="pill">${esc(s.entrypoint || "-")}</span></td>
+      <td class="n">${num(s.turns)}</td><td class="n">${num(s.calls)}</td><td class="n">${fmt(s.context_tokens)}</td>
+      <td class="n">${pct(s.cache_hit_ratio)}</td><td class="n">${fmt(s.output_tokens)}</td>
+      <td class="mono">${esc((s.models || "").split(",").map((m) => m.replace(/^claude-/, "")).join(", "))}</td>
+      <td class="trunc" title="${esc(s.first_prompt)}">${esc(trunc(s.first_prompt, 70))}</td></tr>`).join("") + `</tbody></table>`;
+}
+$("sessions").addEventListener("click", (e) => { const tr = e.target.closest("tr[data-sid]"); if (tr) openSession(tr.dataset.sid); });
+
+function timelineChart(msgs, width) {
+  const H = 120, padL = 44, padB = 18, W = width, iw = W - padL - 6;
+  const ctx = (m) => num(m.input_tokens) + num(m.cache_create_tokens) + num(m.cache_read_tokens);
+  const max = niceMax(Math.max(...msgs.map(ctx), 1)), bw = iw / msgs.length;
+  const y = (v) => 6 + H - (v / max) * H;
+  let s = `<svg width="${W}" height="${H + padB + 6}" role="img" aria-label="Context per call">`;
+  for (let t = 0; t <= 2; t++) { const v = (max / 2) * t; s += `<line class="gl" x1="${padL}" x2="${W - 6}" y1="${y(v)}" y2="${y(v)}"/><text x="${padL - 6}" y="${y(v) + 4}" text-anchor="end">${fmt(v)}</text>`; }
+  msgs.forEach((m, i) => {
+    const rest = num(m.input_tokens) + num(m.cache_read_tokens), cc = num(m.cache_create_tokens);
+    const tt = `call ${i + 1}  ${shortDate(m.ts)}\n${m.model || ""}\ncontext ${fmt(ctx(m))}\ncache create ${fmt(cc)}\ncache read ${fmt(m.cache_read_tokens)}\noutput ${fmt(m.output_tokens)}`;
+    const bx = 44 + i * bw + bw * 0.1, w = Math.max(bw * 0.8, 1);
+    if (rest) s += `<rect x="${bx}" y="${y(rest)}" width="${w}" height="${y(0) - y(rest)}" fill="var(--s1)" stroke="var(--surface)" stroke-width="0.5"/>`;
+    if (cc) s += `<rect x="${bx}" y="${y(rest + cc)}" width="${w}" height="${y(rest) - y(rest + cc)}" fill="var(--s2)" stroke="var(--surface)" stroke-width="0.5"/>`;
+    s += `<rect x="${44 + i * bw}" y="6" width="${bw}" height="${H}" fill="transparent" data-tip="${esc(tt)}"/>`;
+  });
+  s += `<text x="${padL}" y="${H + padB + 2}">call 1</text><text x="${W - 6}" y="${H + padB + 2}" text-anchor="end">call ${msgs.length}</text>`;
+  return s + `</svg>`;
+}
+
+async function openSession(id) {
+  const d = $("drawer");
+  d.classList.add("open");
+  d.innerHTML = `<button class="btn close" id="closeDrawer">Close</button><div class="empty">Loading...</div>`;
+  try {
+    const r = await api("/api/session/" + encodeURIComponent(id));
+    const s = r.session;
+    const tools = r.tools.length ? `<div class="scroll"><table><thead><tr><th>Tool</th><th>Server</th><th class="n">Calls</th><th class="n">Result chars</th></tr></thead><tbody>` +
+      r.tools.map((t) => `<tr><td class="mono">${esc(shortTool(t.tool_name))}</td><td>${esc(t.mcp_server || "builtin")}</td><td class="n">${t.calls}</td><td class="n">${fmt(t.result_chars)}</td></tr>`).join("") + `</tbody></table></div>` : emptyMsg("tool calls in this session");
+    d.innerHTML = `<button class="btn close" id="closeDrawer">Close</button>
+      <h3 style="margin:0 0 4px">${esc(base(s.project_dir))} <span class="pill">${esc(s.account)}</span> <span class="pill">${esc(s.entrypoint || "-")}</span></h3>
+      <div class="mono" style="color:var(--ink-3)">${esc(s.session_id)}<br>${shortDate(s.first_ts)} to ${shortDate(s.last_ts)} | ${num(s.turns)} turns | ${num(s.calls)} calls | context ${fmt(s.context_tokens)} | cache ${pct(s.cache_hit_ratio)} | output ${fmt(s.output_tokens)}</div>
+      <p class="rec">${esc(s.first_prompt || "")}</p>
+      <div class="panelhead">Context per call</div>
+      <div class="legend"><span><i style="background:var(--s1)"></i>Input + cache read</span><span><i style="background:var(--s2)"></i>Cache create</span></div>
+      <div id="tl">${r.messages.length ? "" : emptyMsg("calls in this session")}</div>
+      <div class="panelhead" style="margin-top:14px">Tools</div>${tools}`;
+    if (r.messages.length) $("tl").innerHTML = timelineChart(r.messages, Math.max(280, d.clientWidth - 40));
+  } catch (e) { d.innerHTML = `<button class="btn close" id="closeDrawer">Close</button><div class="empty err">${esc(e.message)}</div>`; }
+}
+$("drawer").addEventListener("click", (e) => { if (e.target.id === "closeDrawer") $("drawer").classList.remove("open"); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("drawer").classList.remove("open"); });
+
+// ---------------------------------------------------------------- tools
+const shortTool = (n) => String(n || "").replace(/^mcp__.+?__/, "");
+async function loadTools() {
+  const rows = await api("/api/tools?" + qs({ days: state.days }));
+  const el = $("tools");
+  if (!rows.length) { el.innerHTML = emptyMsg("tool calls", "python -m collector ship"); return; }
+  const multi = state.account === "all";
+  const servers = {};
+  for (const r of rows) (servers[r.server] ||= []).push(r);
+  const order = Object.entries(servers).map(([name, rs]) => ({ name, rs, total: rs.reduce((s, r) => s + num(r.result_chars), 0), calls: rs.reduce((s, r) => s + num(r.calls), 0) }))
+    .sort((a, b) => b.total - a.total);
+  const max = Math.max(...rows.map((r) => num(r.result_chars)), 1);
+  let h = `<table><thead><tr><th>Server / tool</th>${multi ? "<th>Account</th>" : ""}<th class="n">Calls</th><th class="n">Result chars</th><th></th><th class="n">Avg result</th></tr></thead><tbody>`;
+  for (const g of order) {
+    h += `<tr class="grp"><td colspan="${multi ? 2 : 1}">${esc(g.name)}</td><td class="n">${fmt(g.calls)}</td><td class="n">${fmt(g.total)}</td><td></td><td></td></tr>`;
+    for (const r of g.rs.sort((a, b) => num(b.result_chars) - num(a.result_chars)).slice(0, 12)) {
+      h += `<tr><td class="mono" style="padding-left:20px">${esc(shortTool(r.tool_name))}</td>${multi ? `<td>${esc(r.account)}</td>` : ""}<td class="n">${fmt(r.calls)}</td>
+        <td class="n">${fmt(r.result_chars)}</td><td style="width:22%"><div class="bar" style="width:${(num(r.result_chars) / max * 100).toFixed(1)}%" data-tip="${esc(r.tool_name)}\n${fmt(r.result_chars)} result chars"></div></td>
+        <td class="n">${fmt(r.avg_result_chars)}</td></tr>`;
+    }
+  }
+  el.innerHTML = h + `</tbody></table>`;
+}
+
+// ---------------------------------------------------------------- context files
+async function loadContext() {
+  const rows = await api("/api/context?" + qs());
+  const el = $("ctx");
+  if (!rows.length) { el.innerHTML = emptyMsg("instruction files", "python -m collector ship --context"); return; }
+  const max = Math.max(...rows.map((r) => num(r.est_tokens)), 1);
+  const kinds = {};
+  for (const r of rows) (kinds[r.kind] ||= []).push(r);
+  el.innerHTML = Object.entries(kinds).map(([k, rs]) => `<div class="panelhead">${esc(k)} <span style="font-weight:400;color:var(--ink-3)">${fmt(rs.reduce((s, r) => s + num(r.est_tokens), 0))} est tokens</span></div>
+    <table><tbody>` + rs.map((r) => `<tr><td class="mono" style="width:46%" title="${esc(r.path)}">${esc(trunc(r.path.length > 48 ? "…" + r.path.slice(-47) : r.path, 60))}</td>
+      <td style="width:14%"><span class="pill">${esc(r.scope || "-")}</span></td>
+      <td><div class="bar" style="width:${(num(r.est_tokens) / max * 100).toFixed(1)}%" data-tip="${esc(r.path)}\n${num(r.est_tokens).toLocaleString()} est tokens\n${esc(r.account)}"></div></td>
+      <td class="n">${fmt(r.est_tokens)}</td></tr>`).join("") + `</tbody></table>`).join("");
+}
+
+// ---------------------------------------------------------------- scheduled tasks
+async function loadTasks() {
+  const rows = await api("/api/tasks?" + qs());
+  const el = $("tasks");
+  if (!rows.length) { el.innerHTML = emptyMsg("scheduled tasks", "python -m collector tasks"); return; }
+  el.innerHTML = `<table><thead><tr><th>Name</th><th>Account</th><th>Cron</th><th>Model</th><th class="n">Runs</th><th class="n">Nothing new</th><th class="n">Errors</th><th class="n">Context</th><th>Last run</th></tr></thead><tbody>` +
+    rows.map((t) => {
+      const st = t.stats || {}, runs = num(st.runs);
+      return `<tr><td>${esc(t.name)}${t.enabled === 0 ? ' <span class="pill">disabled</span>' : ""}</td><td>${esc(t.account)}</td><td class="mono">${esc(t.cron)}</td>
+        <td class="mono">${esc((t.model || "").replace(/^claude-/, ""))}</td><td class="n">${runs}</td>
+        <td class="n">${runs ? Math.round(num(st.nothing_new) / runs * 100) + "%" : "-"}</td><td class="n">${num(st.errors)}</td>
+        <td class="n">${fmt(st.context_tokens)}</td><td class="mono">${st.last_run ? shortDate(st.last_run) : "never"}</td></tr>`;
+    }).join("") + `</tbody></table>`;
+}
+
+// ---------------------------------------------------------------- boot
+function refresh() {
+  saveState(); renderHeader();
+  guard("tiles", loadSummary); guard("daily", loadDaily); guard("findings", loadFindings);
+  guard("sessions", loadSessions); guard("tools", loadTools); guard("ctx", loadContext); guard("tasks", loadTasks);
+}
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => guard("daily", loadDaily), 200); });
+(async function init() {
+  try { state.accounts = await api("/api/accounts"); } catch (e) { $("seen").textContent = "Could not load accounts: " + e.message; }
+  if (state.account !== "all" && !state.accounts.some((a) => a.account === state.account)) state.account = "all";
+  refresh();
+})();
+</script>
+</body>
+</html>
