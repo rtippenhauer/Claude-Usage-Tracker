@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>claude-usage-analyzers</Name>
+  <Repository>ghcr.io/rtippenhauer/claude-usage-tracker:latest</Repository>
+  <Registry>https://github.com/rtippenhauer/Claude-Usage-Tracker/pkgs/container/claude-usage-tracker</Registry>
+  <Network>none</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/rtippenhauer/Claude-Usage-Tracker</Support>
+  <Project>https://github.com/rtippenhauer/Claude-Usage-Tracker</Project>
+  <Overview>Nightly rule-based analyzers for claude-usage-tracker (no LLM, no network). Also pulls scheduled-task runs from the relay folder before each run. Shares the Data folder with claude-usage-tracker.</Overview>
+  <Category>Tools: Productivity:</Category>
+  <TemplateURL>https://raw.githubusercontent.com/rtippenhauer/Claude-Usage-Tracker/main/deploy/unraid/claude-usage-analyzers.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/rtippenhauer/Claude-Usage-Tracker/main/deploy/unraid/icon.png</Icon>
+  <ExtraParams>--restart unless-stopped --entrypoint sh</ExtraParams>
+  <PostArgs>-c "while true; do [ -d /relay/runs ] &amp;&amp; python -m server.relay_pull --relay /relay --db $TRACKER_DB; python -m analyzers.run --db $TRACKER_DB --rules; sleep ${INTERVAL_SECONDS:-86400}; done"</PostArgs>
+  <Config Name="Data" Target="/data" Default="/mnt/user/appdata/claude-usage-tracker/data" Mode="rw" Description="Same folder as claude-usage-tracker" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/claude-usage-tracker/data</Config>
+  <Config Name="Relay (optional)" Target="/relay" Default="/mnt/user/appdata/claude-usage-tracker/relay" Mode="ro" Description="Git checkout of claude-usage-relay; do the git pull from a User Script since this container has no network" Type="Path" Display="always" Required="false" Mask="false">/mnt/user/appdata/claude-usage-tracker/relay</Config>
+  <Config Name="TRACKER_DB" Target="TRACKER_DB" Default="/data/tracker.db" Mode="" Description="" Type="Variable" Display="advanced" Required="false" Mask="false">/data/tracker.db</Config>
+  <Config Name="INTERVAL_SECONDS" Target="INTERVAL_SECONDS" Default="86400" Mode="" Description="How often to rerun the analyzers" Type="Variable" Display="always" Required="false" Mask="false">86400</Config>
+  <Config Name="TZ" Target="TZ" Default="America/New_York" Mode="" Description="" Type="Variable" Display="advanced" Required="false" Mask="false">America/New_York</Config>
+</Container>

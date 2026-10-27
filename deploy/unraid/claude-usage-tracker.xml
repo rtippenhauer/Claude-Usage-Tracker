@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>claude-usage-tracker</Name>
+  <Repository>ghcr.io/rtippenhauer/claude-usage-tracker:latest</Repository>
+  <Registry>https://github.com/rtippenhauer/Claude-Usage-Tracker/pkgs/container/claude-usage-tracker</Registry>
+  <Network>bridge</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/rtippenhauer/Claude-Usage-Tracker</Support>
+  <Project>https://github.com/rtippenhauer/Claude-Usage-Tracker</Project>
+  <Overview>Claude usage tracker: ingest API, SQLite store and review dashboard for two Claude accounts. Collectors on each machine ship Claude Code usage here. Pair with claude-usage-analyzers for nightly findings.</Overview>
+  <Category>Tools: Productivity:</Category>
+  <WebUI>http://[IP]:[PORT:8787]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/rtippenhauer/Claude-Usage-Tracker/main/deploy/unraid/claude-usage-tracker.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/rtippenhauer/Claude-Usage-Tracker/main/deploy/unraid/icon.png</Icon>
+  <ExtraParams>--restart unless-stopped</ExtraParams>
+  <PostArgs/>
+  <Config Name="Web port" Target="8787" Default="8787" Mode="tcp" Description="Dashboard and ingest API" Type="Port" Display="always" Required="true" Mask="false">8787</Config>
+  <Config Name="Data" Target="/data" Default="/mnt/user/appdata/claude-usage-tracker/data" Mode="rw" Description="SQLite database lives here" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/claude-usage-tracker/data</Config>
+  <Config Name="Relay (optional)" Target="/relay" Default="/mnt/user/appdata/claude-usage-tracker/relay" Mode="rw" Description="Git checkout of the claude-usage-relay repo (scheduled-task runs). Leave the folder empty if unused." Type="Path" Display="always" Required="false" Mask="false">/mnt/user/appdata/claude-usage-tracker/relay</Config>
+  <Config Name="TRACKER_TOKEN" Target="TRACKER_TOKEN" Default="" Mode="" Description="Shared secret; put the same value in each machine's collector.toml" Type="Variable" Display="always" Required="true" Mask="true"></Config>
+  <Config Name="TRACKER_DB" Target="TRACKER_DB" Default="/data/tracker.db" Mode="" Description="" Type="Variable" Display="advanced" Required="false" Mask="false">/data/tracker.db</Config>
+  <Config Name="TZ" Target="TZ" Default="America/New_York" Mode="" Description="" Type="Variable" Display="advanced" Required="false" Mask="false">America/New_York</Config>
+</Container>

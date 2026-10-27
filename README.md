@@ -16,11 +16,29 @@ docs/           analyzers, scheduled-task relay, agents
 
 ## Quick start
 
-**Unraid**
+**Unraid (template)**
+
+Docker tab → Add Container → Template repositories, add
+`https://github.com/rtippenhauer/Claude-Usage-Tracker/tree/main/deploy/unraid` — or paste a
+template URL straight into the Template field:
+
+- `https://raw.githubusercontent.com/rtippenhauer/Claude-Usage-Tracker/main/deploy/unraid/claude-usage-tracker.xml`
+- `https://raw.githubusercontent.com/rtippenhauer/Claude-Usage-Tracker/main/deploy/unraid/claude-usage-analyzers.xml`
+
+Set `TRACKER_TOKEN` (any random string) on the tracker, Apply both. The image is built by
+GitHub Actions and published to `ghcr.io/rtippenhauer/claude-usage-tracker`. If the repo is
+private the package is private too: either make the package public (GitHub → Packages →
+package settings → visibility) or `docker login ghcr.io` on Unraid with a PAT that has
+`read:packages`.
+
+For the relay, clone it into `/mnt/user/appdata/claude-usage-tracker/relay` and schedule
+`deploy/unraid/relay-pull.sh` hourly with the User Scripts plugin.
+
+**Unraid (compose, alternative)**
 
 ```
 mkdir -p /mnt/user/appdata/claude-usage-tracker && cd /mnt/user/appdata/claude-usage-tracker
-git clone <this repo> src && cd src/deploy
+git clone git@github.com:rtippenhauer/Claude-Usage-Tracker.git src && cd src/deploy
 TRACKER_TOKEN=$(openssl rand -hex 16) docker compose up -d --build
 # dashboard: http://<unraid>:8787   health: /healthz
 ```
