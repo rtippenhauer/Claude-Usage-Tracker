@@ -60,7 +60,31 @@ def main() -> None:
                        int(len(prompt) / 3.6) + 1, prompt, now))
             n_tasks += 1
     c.commit()
-    print(f"relay: {n_runs} runs, {n_tasks} task definitions")
+    c.close()
+
+    # Collector spool files pushed by machines in git mode (work PC with no LAN access).
+    # Each is a complete /ingest payload; ingest it through the same code path the API uses,
+    # then delete it from the relay so the repo doesn't grow forever.
+    n_spool = 0
+    spool_files = sorted(relay.glob("spool/*/*.json"))
+    if spool_files:
+        import os, sys
+        os.environ.setdefault("TRACKER_DB", a.db)
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+        from server.app import ingest  # noqa: E402
+        for fp in spool_files:
+            try:
+                item = json.loads(fp.read_text())
+                ingest(item["payload"])
+                fp.unlink()
+                n_spool += 1
+            except Exception as e:  # noqa: BLE001
+                print(f"spool {fp.name}: {e}")
+        if n_spool and (relay / ".git").exists() and a.git_pull:
+            subprocess.run(["git", "-C", str(relay), "add", "-A", "spool"], check=False)
+            subprocess.run(["git", "-C", str(relay), "commit", "-qm", f"ingested {n_spool} spool files"], check=False)
+            subprocess.run(["git", "-C", str(relay), "push", "-q"], check=False)
+    print(f"relay: {n_runs} runs, {n_tasks} task definitions, {n_spool} spool batches")
 
 
 if __name__ == "__main__":

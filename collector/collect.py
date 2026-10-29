@@ -260,10 +260,14 @@ def collect_context_files(cfg: dict, state: dict, account: str, machine: str, pr
 def post(cfg: dict, endpoint: str, payload: dict, dry_run: bool) -> bool:
     url = (cfg["server"].get("url") or "").rstrip("/")
     body = json.dumps(payload).encode()
-    if dry_run or not url:
+    if dry_run:
         spool(cfg, endpoint, payload)
-        if dry_run:
-            print(f"[dry-run] {endpoint}: {len(body):,} bytes")
+        print(f"[dry-run] {endpoint}: {len(body):,} bytes")
+        return True
+    if cfg["server"].get("mode") == "git":
+        return git_spool(cfg, endpoint, payload)
+    if not url:
+        spool(cfg, endpoint, payload)
         return True
     req = urllib.request.Request(f"{url}{endpoint}", data=body, method="POST",
                                  headers={"Content-Type": "application/json",
@@ -285,7 +289,38 @@ def spool(cfg: dict, endpoint: str, payload: dict) -> None:
     (d / name).write_text(json.dumps({"endpoint": endpoint, "payload": payload}))
 
 
+def git_spool(cfg: dict, endpoint: str, payload: dict) -> bool:
+    """Git mode: for machines that can reach GitHub but not the tracker (a work PC).
+    Writes the payload into <relay_dir>/spool/<account>/ and pushes; the Unraid side
+    ingests it with server/relay_pull.py. Each file is a complete /ingest payload."""
+    import subprocess
+    relay = Path(os.path.expanduser(cfg["server"].get("relay_dir") or "~/claude-usage-relay"))
+    if not (relay / ".git").exists():
+        print(f"relay checkout not found at {relay}; spooling locally instead", file=sys.stderr)
+        spool(cfg, endpoint, payload)
+        return False
+    d = relay / "spool" / payload.get("account", "unknown")
+    d.mkdir(parents=True, exist_ok=True)
+    name = f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%f')}{endpoint.replace('/', '_')}.json"
+    (d / name).write_text(json.dumps({"endpoint": endpoint, "payload": payload}))
+    try:
+        subprocess.run(["git", "-C", str(relay), "pull", "-q", "--rebase", "--autostash"], check=False)
+        subprocess.run(["git", "-C", str(relay), "add", str(d)], check=True)
+        subprocess.run(["git", "-C", str(relay), "commit", "-qm", f"spool: {payload.get('account')} {name}"], check=True)
+        subprocess.run(["git", "-C", str(relay), "push", "-q"], check=True)
+        return True
+    except subprocess.CalledProcessError as e:
+        print(f"git push failed ({e}); file is committed or staged in the relay, next run will retry", file=sys.stderr)
+        return False
+
+
 def flush(cfg: dict) -> None:
+    if cfg["server"].get("mode") == "git":
+        import subprocess
+        relay = Path(os.path.expanduser(cfg["server"].get("relay_dir") or "~/claude-usage-relay"))
+        subprocess.run(["git", "-C", str(relay), "push", "-q"], check=False)
+        print("pushed relay")
+        return
     d = Path(os.path.expanduser(cfg["server"].get("spool_dir") or str(STATE_DIR / "spool")))
     for fp in sorted(d.glob("*.json")) if d.exists() else []:
         item = json.loads(fp.read_text())

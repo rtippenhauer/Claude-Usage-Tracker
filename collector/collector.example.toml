@@ -7,10 +7,14 @@ label   = "Personal (Pro)"
 plan    = "pro"
 
 [server]
-# Unraid tracker. Leave url empty to spool batches locally (offline / air-gapped).
+# mode = "http" (default): POST to the tracker on your LAN.
+# mode = "git":  for a machine that cannot reach the tracker (work PC). Batches are committed
+#                into a checkout of the relay repo and pushed; Unraid ingests them on pull.
+mode    = "http"
 url     = "http://unraid.local:8787"
-token   = "change-me"         # must match TRACKER_TOKEN on the server
-spool_dir = "~/.claude-usage-tracker/spool"   # written when the server is unreachable
+token   = "change-me"         # must match TRACKER_TOKEN on the server (http mode only)
+spool_dir = "~/.claude-usage-tracker/spool"   # http mode: written when the server is unreachable
+relay_dir = "~/claude-usage-relay"            # git mode: clone of git@github.com:<you>/claude-usage-relay
 
 [sources]
 # Claude Code transcript roots. ~ expands. Windows: "C:/Users/rob/.claude/projects"
