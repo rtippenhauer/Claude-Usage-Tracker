@@ -73,3 +73,16 @@ docker exec claude-usage-tracker python3 server/relay_pull.py --relay /relay --d
 Any store both sides can reach works: a Gist, an S3-compatible bucket, or a Tailscale Funnel to
 the tracker's `/ingest` endpoint (then `report_run.py` can POST directly; add `--url` support).
 The relay script only cares about the file layout.
+
+## Tasks that run locally (desktop app)
+
+If your scheduled tasks run on your own machine through the desktop app, every run already lands
+as an ordinary transcript (entrypoint `claude-desktop`) and the collector ships it. You do not
+need `report_run.py`. Just export the task definitions to `tasks/<account>.json` (name and cron
+are enough; prompt and model optional) and `server/task_match.py` links each `claude-desktop`
+session to the task whose cron fired within 20 minutes before it started. Outcome is inferred
+from output size (<= 1,500 output tokens = `nothing_new`). It runs at the end of `relay_pull`.
+
+Limitation: two tasks on the same minute (e.g. both at 06:00) cannot be told apart by time; the
+first in the file wins. Stagger them by a few minutes — the schedule analyzer suggests jittered
+minutes anyway.
