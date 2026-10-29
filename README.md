@@ -40,7 +40,7 @@ For the relay, clone it into `/mnt/user/appdata/claude-usage-tracker/relay` and 
 mkdir -p /mnt/user/appdata/claude-usage-tracker && cd /mnt/user/appdata/claude-usage-tracker
 git clone git@github.com:rtippenhauer/Claude-Usage-Tracker.git src && cd src/deploy
 TRACKER_TOKEN=$(openssl rand -hex 16) docker compose up -d --build
-# dashboard: http://<unraid>:8787   health: /healthz
+# dashboard: http://<unraid>:20100   health: /healthz
 ```
 
 **Each machine** (work laptop, personal desktop)

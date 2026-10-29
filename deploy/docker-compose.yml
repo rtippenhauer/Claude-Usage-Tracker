@@ -8,7 +8,7 @@ services:
     container_name: claude-usage-tracker
     restart: unless-stopped
     ports:
-      - "8787:8787"
+      - "20100:8787"
     environment:
       TRACKER_TOKEN: ${TRACKER_TOKEN:-change-me}
       TRACKER_DB: /data/tracker.db

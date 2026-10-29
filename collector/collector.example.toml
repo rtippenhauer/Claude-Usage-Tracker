@@ -11,7 +11,7 @@ plan    = "pro"
 # mode = "git":  for a machine that cannot reach the tracker (work PC). Batches are committed
 #                into a checkout of the relay repo and pushed; Unraid ingests them on pull.
 mode    = "http"
-url     = "http://unraid.local:8787"
+url     = "http://unraid.local:20100"
 token   = "change-me"         # must match TRACKER_TOKEN on the server (http mode only)
 spool_dir = "~/.claude-usage-tracker/spool"   # http mode: written when the server is unreachable
 relay_dir = "~/claude-usage-relay"            # git mode: clone of git@github.com:<you>/claude-usage-relay
