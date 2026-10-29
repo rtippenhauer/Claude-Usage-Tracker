@@ -66,7 +66,7 @@ def run(db: str, account: str | None, window: int) -> int:
     if not tasks:
         return 0
     sessions = c.execute(f"""SELECT * FROM v_session_totals
-                             WHERE entrypoint = 'claude-desktop' AND calls > 0{acct}
+                             WHERE entrypoint IN ('claude-desktop', 'local-agent') AND calls > 0{acct}
                                AND session_id NOT IN (SELECT substr(run_id, instr(run_id, ':') + 1) FROM task_runs)""",
                          params).fetchall()
     n = 0
