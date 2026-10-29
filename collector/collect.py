@@ -390,7 +390,11 @@ def cmd_run(cfg: dict, args) -> None:
 
     files = []
     for root in cfg["sources"].get("transcript_dirs", ["~/.claude/projects"]):
-        files += glob.glob(os.path.join(os.path.expanduser(root), "**", "*.jsonl"), recursive=True)
+        # os.walk, not glob: glob skips dot-directories, and the desktop app keeps
+        # scheduled-task transcripts under <run>/.claude/projects/session/.
+        for dirpath, dirnames, filenames in os.walk(os.path.expanduser(root)):
+            dirnames[:] = [d for d in dirnames if not d.startswith("mcp-logs")]
+            files += [os.path.join(dirpath, f) for f in filenames if f.endswith(".jsonl") and f != "audit.jsonl"]
 
     sessions, messages, tools, prompts = [], [], [], []
     project_dirs: set[str] = set()
