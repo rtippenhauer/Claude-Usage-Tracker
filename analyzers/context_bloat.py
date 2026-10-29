@@ -68,8 +68,13 @@ def _sessions_by_scope(conn: sqlite3.Connection, account: str) -> tuple[int, dic
     return sum(per.values()), per
 
 
+ON_DEMAND_KINDS = {"skill", "command", "agent"}   # loaded only when invoked, not every session
+
+
 def _sessions_for(cf: dict, total: int, per: dict[str, int]) -> int:
     scope = cf.get("scope") or "global"
+    if cf.get("kind") in ON_DEMAND_KINDS:
+        return 0
     if scope.startswith("project:"):
         d = scope.split(":", 1)[1].rstrip("/")
         return sum(n for pd, n in per.items() if pd.rstrip("/") == d or pd.startswith(d + "/"))
@@ -129,20 +134,25 @@ def run(conn: sqlite3.Connection, account: str | None) -> list[Finding]:
         heur = _heuristics(content) if content and cf["kind"] == "claude_md" else {}
 
         if est > med:
-            sev = "high" if est > high else "medium"
+            on_demand = cf["kind"] in ON_DEMAND_KINDS
+            sev = "low" if on_demand else ("high" if est > high else "medium")
             over = est - med
+            if on_demand:
+                where = (f"A {cf['kind']} loads only when invoked (sessions see just its one-line description), "
+                         f"so it costs ~{est:,} tokens per invocation, not per session.")
+            else:
+                where = (f"It was loaded into ~{n_sessions} session(s) in the last {WINDOW_DAYS} days, so it costs "
+                         f"roughly {per_period:,} context tokens per {WINDOW_DAYS} days before any cache effects "
+                         f"(and every cache re-create pays it again).")
             out.append(Finding(
                 account=acct, analyzer=NAME, severity=sev,
                 title=f"{cf['kind']} is {est:,} tokens ({cf['path']})",
                 fingerprint=f"{NAME}:size:{acct}:{cf['path']}",
-                detail=(f"`{cf['path']}` ({cf['scope']}) is ~{est:,} tokens, threshold {med:,}. It was loaded into "
-                        f"~{n_sessions} session(s) in the last {WINDOW_DAYS} days, so it costs roughly "
-                        f"{per_period:,} context tokens per {WINDOW_DAYS} days before any cache effects "
-                        f"(and every cache re-create pays it again)."),
+                detail=f"`{cf['path']}` ({cf['scope']}) is ~{est:,} tokens, threshold {med:,}. {where}",
                 evidence={"path": cf["path"], "kind": cf["kind"], "scope": cf["scope"], "est_tokens": est,
                           "threshold": med, "sessions_30d": n_sessions, "tokens_per_30d": per_period,
                           "heuristics": heur},
-                est_tokens_wasted=int(over * max(n_sessions, 1)),
+                est_tokens_wasted=int(over * max(n_sessions, 1)) if not on_demand else None,
                 recommendation=("Trim to what every session needs. Move task-specific sections into a slash "
                                 "command or skill (loaded on demand), delete anything Claude can discover from the "
                                 "repo, and run the `claude_md_audit` LLM audit for a per-section verdict."),
