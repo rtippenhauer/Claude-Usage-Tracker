@@ -76,10 +76,14 @@ def main() -> None:
             try:
                 item = json.loads(fp.read_text())
                 ingest(item["payload"])
-                fp.unlink()
                 n_spool += 1
             except Exception as e:  # noqa: BLE001
-                print(f"spool {fp.name}: {e}")
+                print(f"spool {fp.name}: ingest failed: {e}")
+                continue
+            try:
+                fp.unlink()
+            except OSError as e:
+                print(f"spool {fp.name}: ingested but could not delete ({e}); mount /relay read-write")
         if n_spool and (relay / ".git").exists() and a.git_pull:
             subprocess.run(["git", "-C", str(relay), "add", "-A", "spool"], check=False)
             subprocess.run(["git", "-C", str(relay), "commit", "-qm", f"ingested {n_spool} spool files"], check=False)
