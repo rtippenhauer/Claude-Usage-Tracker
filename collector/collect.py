@@ -261,7 +261,6 @@ def post(cfg: dict, endpoint: str, payload: dict, dry_run: bool) -> bool:
     url = (cfg["server"].get("url") or "").rstrip("/")
     body = json.dumps(payload).encode()
     if dry_run:
-        spool(cfg, endpoint, payload)
         print(f"[dry-run] {endpoint}: {len(body):,} bytes")
         return True
     if cfg["server"].get("mode") == "git":

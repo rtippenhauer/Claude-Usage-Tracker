@@ -152,7 +152,8 @@ def _compare(summaries: dict[str, dict]) -> Finding | None:
     imbalanced = ratio >= IMBALANCE_RATIO or (
         (sbig["meter_peak"] or 0) >= HIGH_METER_PCT and (ssmall["meter_peak"] or 0) < LOW_METER_PCT * 2)
     sev = "medium" if imbalanced else "info"
-    rec = (f"`{big}` carries {ratio:.1f}x the context volume of `{small}`. Move account-agnostic work "
+    ratio_txt = f"{ratio:.1f}x" if ratio != float("inf") else "all"
+    rec = (f"`{big}` carries {ratio_txt} the context volume of `{small}`. Move account-agnostic work "
            f"(scheduled tasks, personal tooling, experiments) to `{small}` so both limits are used."
            if imbalanced else "Usage is reasonably balanced; no rebalancing needed.")
     return Finding(
