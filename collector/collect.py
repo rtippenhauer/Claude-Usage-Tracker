@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Claude Usage Tracker — per-machine collector.
 
-Stdlib only (Python 3.11+). Reads Claude Code transcripts and instruction files,
+Stdlib only (Python 3.9+; tomllib used when present). Reads Claude Code transcripts and instruction files,
 dedupes, tags with the account, and ships batches to the Unraid server
 (or spools them locally when offline).
 
@@ -25,7 +25,10 @@ import platform
 import re
 import socket
 import sys
-import tomllib
+try:
+    import tomllib  # Python 3.11+
+except ModuleNotFoundError:  # macOS system python is 3.9; read our simple config without it
+    tomllib = None
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -39,12 +42,49 @@ BATCH_LIMIT = 500  # messages per POST
 
 # ----------------------------------------------------------------------------- config
 
-def load_config(path: str | None) -> dict:
+def _mini_toml(text: str) -> dict:
+    """Enough TOML for collector.toml: [sections], strings, bools, numbers, arrays of strings."""
+    import ast
+    cfg: dict = {}
+    cur = cfg
+    buf = None
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0].strip() if not raw.strip().startswith('"') else raw.strip()
+        if buf is not None:
+            buf += " " + line
+            if "]" in line:
+                k, v = buf.split("=", 1)
+                cur[k.strip()] = list(ast.literal_eval(v.strip()))
+                buf = None
+            continue
+        if not line:
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            cur = cfg.setdefault(line[1:-1].strip(), {})
+            continue
+        if "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        k, v = k.strip(), v.strip()
+        if v.startswith("[") and "]" not in v:
+            buf = line
+            continue
+        if v in ("true", "false"):
+            cur[k] = v == "true"
+        else:
+            cur[k] = ast.literal_eval(v)
+    return cfg
+
+
+def load_config(path):
     p = Path(path) if path else Path(__file__).with_name("collector.toml")
     if not p.exists():
         sys.exit(f"config not found: {p} (copy collector.example.toml)")
-    with open(p, "rb") as f:
-        cfg = tomllib.load(f)
+    if tomllib:
+        with open(p, "rb") as f:
+            cfg = tomllib.load(f)
+    else:
+        cfg = _mini_toml(p.read_text(encoding="utf-8"))
     cfg.setdefault("server", {})
     cfg.setdefault("sources", {})
     cfg.setdefault("privacy", {})
