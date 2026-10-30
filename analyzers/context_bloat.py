@@ -71,13 +71,18 @@ def _sessions_by_scope(conn: sqlite3.Connection, account: str) -> tuple[int, dic
 ON_DEMAND_KINDS = {"skill", "command", "agent"}   # loaded only when invoked, not every session
 
 
+def _norm(p: str) -> str:
+    """Case-insensitive, forward-slash path key (Windows drive letters vary in case)."""
+    return p.replace("\\", "/").rstrip("/").lower()
+
+
 def _sessions_for(cf: dict, total: int, per: dict[str, int]) -> int:
     scope = cf.get("scope") or "global"
     if cf.get("kind") in ON_DEMAND_KINDS:
         return 0
     if scope.startswith("project:"):
-        d = scope.split(":", 1)[1].rstrip("/")
-        return sum(n for pd, n in per.items() if pd.rstrip("/") == d or pd.startswith(d + "/"))
+        d = _norm(scope.split(":", 1)[1])
+        return sum(n for pd, n in per.items() if _norm(pd) == d or _norm(pd).startswith(d + "/"))
     if scope == "cloud":
         return 0
     return total
@@ -147,7 +152,7 @@ def run(conn: sqlite3.Connection, account: str | None) -> list[Finding]:
             out.append(Finding(
                 account=acct, analyzer=NAME, severity=sev,
                 title=f"{cf['kind']} is {est:,} tokens ({cf['path']})",
-                fingerprint=f"{NAME}:size:{acct}:{cf['path']}",
+                fingerprint=f"{NAME}:size:{acct}:{_norm(cf['path'])}",
                 detail=f"`{cf['path']}` ({cf['scope']}) is ~{est:,} tokens, threshold {med:,}. {where}",
                 evidence={"path": cf["path"], "kind": cf["kind"], "scope": cf["scope"], "est_tokens": est,
                           "threshold": med, "sessions_30d": n_sessions, "tokens_per_30d": per_period,
