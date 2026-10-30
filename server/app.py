@@ -3,6 +3,7 @@
 Endpoints
   POST /ingest                 collector batches (bearer token)
   GET  /api/accounts
+  GET  /api/machines               last_seen + collector version per machine
   GET  /api/summary?account=&days=30
   GET  /api/daily?account=&days=30
   GET  /api/sessions?account=&days=30&sort=waste&limit=50
@@ -181,6 +182,14 @@ def accounts():
     with db() as c:
         return rows(c, """SELECT a.*, (SELECT COUNT(*) FROM sessions s WHERE s.account=a.account) AS sessions,
                           (SELECT MAX(last_seen) FROM machines m WHERE m.account=a.account) AS last_seen FROM accounts a""")
+
+
+@app.get("/api/machines")
+def machines():
+    with db() as c:
+        return rows(c, """SELECT m.*, (SELECT COUNT(*) FROM sessions s WHERE s.machine=m.machine) AS sessions,
+                          (SELECT MAX(last_ts) FROM sessions s WHERE s.machine=m.machine) AS last_session_ts
+                          FROM machines m ORDER BY account, last_seen DESC""")
 
 
 @app.get("/api/summary")

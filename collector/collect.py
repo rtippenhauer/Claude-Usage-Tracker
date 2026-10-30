@@ -102,6 +102,11 @@ def save_state(state: dict) -> None:
     STATE_FILE.write_text(json.dumps(state, indent=1))
 
 
+def machine_name(cfg: dict) -> str:
+    # macOS hostnames drift with the network; a fixed name keeps one row per machine.
+    return cfg["account"].get("machine") or socket.gethostname()
+
+
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -383,7 +388,7 @@ def flush(cfg: dict) -> None:
 
 def cmd_run(cfg: dict, args) -> None:
     account = cfg["account"]["name"]
-    machine = socket.gethostname()
+    machine = machine_name(cfg)
     state = load_state() if not args.full else {"files": {}, "context_hashes": {}}
     store_excerpts = cfg["privacy"].get("store_prompt_excerpts", True)
     excludes = cfg["privacy"].get("exclude_project_globs", [])
@@ -451,7 +456,7 @@ def cmd_tasks(cfg: dict, args) -> None:
     src = Path(os.path.expanduser(args.source or cfg["sources"].get("tasks_export", "")))
     items = json.loads(src.read_text())
     account = cfg["account"]["name"]
-    payload = {"account": account, "machine": socket.gethostname(), "sent_ts": now_iso(),
+    payload = {"account": account, "machine": machine_name(cfg), "sent_ts": now_iso(),
                "scheduled_tasks": [{**t, "account": account, "updated_ts": now_iso()} for t in items],
                "context_files": [{
                    "account": account, "machine": "cloud", "kind": "scheduled_task", "path": f"task:{t.get('name') or t.get('task_id')}",
@@ -470,7 +475,7 @@ def cmd_meter(cfg: dict, args) -> None:
         rows.append({"account": account, "date": date, "surface": args.surface, "metric": "resets_at", "value": args.resets})
     if args.note:
         rows.append({"account": account, "date": date, "surface": args.surface, "metric": "note", "value": args.note})
-    post(cfg, "/ingest", {"account": account, "machine": socket.gethostname(), "sent_ts": now_iso(),
+    post(cfg, "/ingest", {"account": account, "machine": machine_name(cfg), "sent_ts": now_iso(),
                           "meter_snapshots": rows}, args.dry_run)
     print(f"recorded {args.surface} {args.pct}% for {account} on {date}")
 

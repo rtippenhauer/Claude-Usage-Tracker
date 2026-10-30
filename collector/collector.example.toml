@@ -5,6 +5,7 @@
 name    = "personal"          # 'work' on the work machine
 label   = "Personal (Pro)"
 plan    = "pro"
+# machine = "macbook-air"      # optional; defaults to the hostname (which drifts on macOS)
 
 [server]
 # mode = "http" (default): POST to the tracker on your LAN.
