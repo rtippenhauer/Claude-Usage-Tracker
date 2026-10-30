@@ -78,7 +78,9 @@ python -m agents.run_agent --db <copy of tracker.db> --audit claude_md --account
 Set `TRACKER_UI_USER` and `TRACKER_UI_PASS` on the tracker container first: the dashboard and
 `/api/*` then require basic auth; `/ingest` keeps its bearer token; `/healthz` stays open. Put it
 behind a TLS reverse proxy (Nginx Proxy Manager, Caddy) and, if you can, restrict the proxy's
-access list to the networks your collectors use. Collectors then use `url = "https://<host>"`.
+access list to the networks your collectors use. Collectors then use `url = "https://<host>"`. `TRACKER_READ_TOKEN` (optional) allows read-only GET
+`/api/*` calls with `?token=...` for scripts or a browser that cannot show the basic-auth dialog;
+it never works for `/ingest` or the resolve endpoint.
 
 ## Privacy and separation
 

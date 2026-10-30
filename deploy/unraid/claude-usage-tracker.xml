@@ -20,6 +20,7 @@
   <Config Name="TRACKER_TOKEN" Target="TRACKER_TOKEN" Default="" Mode="" Description="Shared secret; put the same value in each machine's collector.toml" Type="Variable" Display="always" Required="true" Mask="false"></Config>
   <Config Name="TRACKER_UI_USER" Target="TRACKER_UI_USER" Default="" Mode="" Description="Optional: basic-auth username for the dashboard and API. Set this and TRACKER_UI_PASS before exposing the tracker through a reverse proxy." Type="Variable" Display="always" Required="false" Mask="false"></Config>
   <Config Name="TRACKER_UI_PASS" Target="TRACKER_UI_PASS" Default="" Mode="" Description="Optional: basic-auth password (pairs with TRACKER_UI_USER)" Type="Variable" Display="always" Required="false" Mask="false"></Config>
+  <Config Name="TRACKER_READ_TOKEN" Target="TRACKER_READ_TOKEN" Default="" Mode="" Description="Optional: read-only token for GET /api/* via ?token= (scripts, Claude's browser pane). Never valid for /ingest." Type="Variable" Display="always" Required="false" Mask="false"></Config>
   <Config Name="TRACKER_DB" Target="TRACKER_DB" Default="/data/tracker.db" Mode="" Description="" Type="Variable" Display="advanced" Required="false" Mask="false">/data/tracker.db</Config>
   <Config Name="TZ" Target="TZ" Default="America/New_York" Mode="" Description="" Type="Variable" Display="advanced" Required="false" Mask="false">America/New_York</Config>
 </Container>

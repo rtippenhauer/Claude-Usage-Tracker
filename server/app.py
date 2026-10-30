@@ -36,6 +36,9 @@ TOKEN = os.environ.get("TRACKER_TOKEN", "change-me")
 # token, /healthz stays open. Set these before exposing the tracker beyond your LAN.
 UI_USER = os.environ.get("TRACKER_UI_USER", "")
 UI_PASS = os.environ.get("TRACKER_UI_PASS", "")
+# Optional read-only token: lets a script or a browser without a basic-auth dialog read GET
+# /api/* with ?token=... or "Authorization: Bearer <token>". Never valid for /ingest or writes.
+READ_TOKEN = os.environ.get("TRACKER_READ_TOKEN", "")
 HERE = Path(__file__).parent
 DASHBOARD = HERE.parent / "dashboard"
 
@@ -48,7 +51,10 @@ async def ui_auth(request: Request, call_next):
     if UI_USER and UI_PASS and not (path == "/ingest" or path == "/healthz"):
         hdr = request.headers.get("authorization", "")
         ok = False
-        if hdr.startswith("Basic "):
+        if READ_TOKEN and request.method == "GET" and path.startswith("/api/"):
+            supplied = request.query_params.get("token") or (hdr[7:] if hdr.startswith("Bearer ") else "")
+            ok = bool(supplied) and secrets.compare_digest(supplied, READ_TOKEN)
+        if not ok and hdr.startswith("Basic "):
             try:
                 user, _, pw = base64.b64decode(hdr[6:]).decode().partition(":")
                 ok = secrets.compare_digest(user, UI_USER) and secrets.compare_digest(pw, UI_PASS)
