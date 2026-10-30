@@ -12,6 +12,8 @@ services:
     environment:
       TRACKER_TOKEN: ${TRACKER_TOKEN:-change-me}
       TRACKER_DB: /data/tracker.db
+      TRACKER_UI_USER: ${TRACKER_UI_USER:-}
+      TRACKER_UI_PASS: ${TRACKER_UI_PASS:-}
       TZ: America/New_York
     volumes:
       - /mnt/user/appdata/claude-usage-tracker/data:/data

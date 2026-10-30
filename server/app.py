@@ -23,16 +23,40 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
-from fastapi.responses import FileResponse, JSONResponse
+import base64
+import secrets
+
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 DB_PATH = os.environ.get("TRACKER_DB", "/data/tracker.db")
 TOKEN = os.environ.get("TRACKER_TOKEN", "change-me")
+# Optional basic auth for the dashboard and /api/* (set both to enable). /ingest keeps the bearer
+# token, /healthz stays open. Set these before exposing the tracker beyond your LAN.
+UI_USER = os.environ.get("TRACKER_UI_USER", "")
+UI_PASS = os.environ.get("TRACKER_UI_PASS", "")
 HERE = Path(__file__).parent
 DASHBOARD = HERE.parent / "dashboard"
 
 app = FastAPI(title="Claude Usage Tracker")
+
+
+@app.middleware("http")
+async def ui_auth(request: Request, call_next):
+    path = request.url.path
+    if UI_USER and UI_PASS and not (path == "/ingest" or path == "/healthz"):
+        hdr = request.headers.get("authorization", "")
+        ok = False
+        if hdr.startswith("Basic "):
+            try:
+                user, _, pw = base64.b64decode(hdr[6:]).decode().partition(":")
+                ok = secrets.compare_digest(user, UI_USER) and secrets.compare_digest(pw, UI_PASS)
+            except Exception:  # noqa: BLE001
+                ok = False
+        if not ok:
+            return Response(status_code=401, headers={"WWW-Authenticate": 'Basic realm="claude-usage-tracker"'})
+    return await call_next(request)
 
 
 # ----------------------------------------------------------------------------- db

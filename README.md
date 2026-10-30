@@ -73,6 +73,13 @@ docker exec claude-usage-tracker python -m analyzers.investigate --db /data/trac
 python -m agents.run_agent --db <copy of tracker.db> --audit claude_md --account work --dry-run
 ```
 
+## Exposing it beyond the LAN
+
+Set `TRACKER_UI_USER` and `TRACKER_UI_PASS` on the tracker container first: the dashboard and
+`/api/*` then require basic auth; `/ingest` keeps its bearer token; `/healthz` stays open. Put it
+behind a TLS reverse proxy (Nginx Proxy Manager, Caddy) and, if you can, restrict the proxy's
+access list to the networks your collectors use. Collectors then use `url = "https://<host>"`.
+
 ## Privacy and separation
 
 - Every row is tagged with `account`; the dashboard and analyzers show one account unless you
