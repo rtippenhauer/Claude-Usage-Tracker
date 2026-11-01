@@ -82,6 +82,13 @@ access list to the networks your collectors use. Collectors then use `url = "htt
 `/api/*` calls with `?token=...` for scripts or a browser that cannot show the basic-auth dialog;
 it never works for `/ingest` or the resolve endpoint.
 
+## Prometheus
+
+`GET /metrics` (same auth as the API: basic auth or the read-only token as a bearer) exposes 24-hour usage per account/model, cache hit ratio,
+open findings, the latest meter reading, each scheduled task's last-run and 7-day average cost, and
+collector staleness. `deploy/prometheus-scrape.yml` has the scrape job and four alert rules
+(meter > 80%, task context 3x its weekly average, stale collector, low cache hit).
+
 ## Privacy and separation
 
 - Every row is tagged with `account`; the dashboard and analyzers show one account unless you

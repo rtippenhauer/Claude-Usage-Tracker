@@ -49,10 +49,10 @@ app = FastAPI(title="Claude Usage Tracker")
 @app.middleware("http")
 async def ui_auth(request: Request, call_next):
     path = request.url.path
-    if UI_USER and UI_PASS and not (path == "/ingest" or path == "/healthz"):
+    if UI_USER and UI_PASS and path not in ("/ingest", "/healthz"):
         hdr = request.headers.get("authorization", "")
         ok = False
-        if READ_TOKEN and request.method == "GET" and path.startswith("/api/"):
+        if READ_TOKEN and request.method == "GET" and (path.startswith("/api/") or path == "/metrics"):
             supplied = request.query_params.get("token") or (hdr[7:] if hdr.startswith("Bearer ") else "")
             ok = bool(supplied) and secrets.compare_digest(supplied, READ_TOKEN)
         if not ok and hdr.startswith("Basic "):
@@ -333,6 +333,80 @@ def index():
 
 if DASHBOARD.exists():
     app.mount("/static", StaticFiles(directory=str(DASHBOARD)), name="static")
+
+
+# ----------------------------------------------------------------------------- prometheus
+
+def _esc(v) -> str:
+    return str(v).replace("\\", "\\\\").replace('"', '\\"')
+
+
+@app.get("/metrics")
+def metrics():
+    """Prometheus text exposition. Gauges over the last 24h / current state.
+    Protected like the API: basic auth, or TRACKER_READ_TOKEN as a bearer token (see deploy/prometheus-scrape.yml)."""
+    lines: list[str] = []
+
+    def gauge(name: str, help_: str, rows_: list[dict], value_key: str, label_keys: tuple[str, ...]):
+        lines.append(f"# HELP {name} {help_}")
+        lines.append(f"# TYPE {name} gauge")
+        for r in rows_:
+            labels = ",".join(f'{k}="{_esc(r.get(k) or "")}"' for k in label_keys)
+            lines.append(f"{name}{{{labels}}} {r.get(value_key) or 0}")
+
+    with db() as c:
+        day = rows(c, """SELECT account, COALESCE(model,'') model, COUNT(*) calls, SUM(input_tokens) input_tokens,
+                         SUM(cache_create_tokens) cache_create_tokens, SUM(cache_read_tokens) cache_read_tokens,
+                         SUM(output_tokens) output_tokens, SUM(is_sidechain) sidechain_calls
+                         FROM messages WHERE ts >= ? GROUP BY account, model""", [since(1)])
+        for k, h in (("calls", "API calls in the last 24h"), ("input_tokens", "Uncached input tokens, last 24h"),
+                     ("cache_create_tokens", "Cache creation tokens, last 24h"),
+                     ("cache_read_tokens", "Cache read tokens, last 24h"), ("output_tokens", "Output tokens, last 24h"),
+                     ("sidechain_calls", "Subagent calls, last 24h")):
+            gauge(f"claude_usage_{k}_24h", h, day, k, ("account", "model"))
+        acct = rows(c, """SELECT account, SUM(input_tokens+cache_create_tokens+cache_read_tokens) ctx,
+                          SUM(cache_read_tokens) cr FROM messages WHERE ts >= ? GROUP BY account""", [since(1)])
+        for r in acct:
+            r["ratio"] = (r["cr"] or 0) / r["ctx"] if r["ctx"] else 0
+        gauge("claude_usage_cache_hit_ratio_24h", "cache_read / total context, last 24h", acct, "ratio", ("account",))
+        sess = rows(c, "SELECT account, COUNT(*) n FROM sessions WHERE first_ts >= ? GROUP BY account", [since(1)])
+        gauge("claude_usage_sessions_24h", "Sessions started in the last 24h", sess, "n", ("account",))
+        fnd = rows(c, """SELECT account, severity, COUNT(*) n, SUM(COALESCE(est_tokens_wasted,0)) wasted
+                         FROM findings WHERE resolved=0 GROUP BY account, severity""")
+        gauge("claude_usage_open_findings", "Open findings", fnd, "n", ("account", "severity"))
+        gauge("claude_usage_est_tokens_wasted", "Estimated tokens wasted across open findings", fnd, "wasted",
+              ("account", "severity"))
+        meter = rows(c, """SELECT m.account, m.surface, CAST(m.value AS REAL) pct FROM meter_snapshots m
+                           WHERE m.metric='pct_used' AND m.date = (SELECT MAX(date) FROM meter_snapshots x
+                               WHERE x.account=m.account AND x.surface=m.surface AND x.metric='pct_used')""")
+        gauge("claude_usage_meter_pct", "Latest recorded usage-meter percentage", meter, "pct", ("account", "surface"))
+        tr = rows(c, """SELECT r.account, COALESCE(t.name, r.task_id) task, r.model,
+                        r.input_tokens + r.cache_read_tokens + r.cache_create_tokens ctx, r.output_tokens out,
+                        CASE r.outcome WHEN 'nothing_new' THEN 1 ELSE 0 END nothing_new
+                        FROM task_runs r LEFT JOIN scheduled_tasks t ON t.task_id = r.task_id
+                        WHERE r.started_ts = (SELECT MAX(started_ts) FROM task_runs y WHERE y.task_id = r.task_id)""")
+        gauge("claude_task_last_run_context_tokens", "Context tokens of each task's most recent run", tr, "ctx",
+              ("account", "task", "model"))
+        gauge("claude_task_last_run_output_tokens", "Output tokens of each task's most recent run", tr, "out",
+              ("account", "task", "model"))
+        gauge("claude_task_last_run_nothing_new", "1 if the task's most recent run found nothing new", tr, "nothing_new",
+              ("account", "task"))
+        tr7 = rows(c, """SELECT r.account, COALESCE(t.name, r.task_id) task, COUNT(*) runs,
+                         AVG(r.input_tokens + r.cache_read_tokens + r.cache_create_tokens) avg_ctx
+                         FROM task_runs r LEFT JOIN scheduled_tasks t ON t.task_id = r.task_id
+                         WHERE r.started_ts >= ? GROUP BY r.account, task""", [since(7)])
+        gauge("claude_task_runs_7d", "Task runs in the last 7 days", tr7, "runs", ("account", "task"))
+        gauge("claude_task_avg_context_tokens_7d", "Average context tokens per run, last 7 days", tr7, "avg_ctx",
+              ("account", "task"))
+        last = rows(c, "SELECT machine, account, last_seen FROM machines")
+        for r in last:
+            try:
+                r["age"] = (datetime.now(timezone.utc) - datetime.fromisoformat(r["last_seen"])).total_seconds()
+            except Exception:  # noqa: BLE001
+                r["age"] = -1
+        gauge("claude_collector_last_seen_seconds", "Seconds since each collector last shipped", last, "age",
+              ("machine", "account"))
+    return Response("\n".join(lines) + "\n", media_type="text/plain; version=0.0.4")
 
 
 @app.get("/healthz")

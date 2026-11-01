@@ -1,0 +1,33 @@
+# Add to prometheus.yml under scrape_configs:
+  - job_name: claude-usage-tracker
+    scrape_interval: 5m
+    static_configs:
+      - targets: ["192.168.2.241:20010"]
+    metrics_path: /metrics
+    authorization:
+      type: Bearer
+      credentials: "<TRACKER_READ_TOKEN>"   # the tracker's read-only token
+
+# Example alert rules (alerts.yml):
+groups:
+  - name: claude-usage
+    rules:
+      - alert: ClaudeMeterHigh
+        expr: claude_usage_meter_pct > 80
+        for: 1h
+        labels: {severity: warning}
+        annotations: {summary: "{{ $labels.account }} {{ $labels.surface }} meter at {{ $value }}%"}
+      - alert: ClaudeTaskContextSpike
+        expr: claude_task_last_run_context_tokens > 3 * claude_task_avg_context_tokens_7d
+        labels: {severity: warning}
+        annotations: {summary: "{{ $labels.task }} last run used 3x its 7-day average context"}
+      - alert: ClaudeCollectorStale
+        expr: claude_collector_last_seen_seconds > 6 * 3600
+        for: 30m
+        labels: {severity: warning}
+        annotations: {summary: "collector on {{ $labels.machine }} has not shipped for 6h"}
+      - alert: ClaudeCacheHitLow
+        expr: claude_usage_cache_hit_ratio_24h < 0.8 and claude_usage_sessions_24h > 2
+        for: 2h
+        labels: {severity: info}
+        annotations: {summary: "{{ $labels.account }} cache hit ratio {{ $value }} over the last 24h"}
