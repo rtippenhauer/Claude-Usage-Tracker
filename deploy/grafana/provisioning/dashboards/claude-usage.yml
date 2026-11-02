@@ -7,4 +7,4 @@ providers:
     allowUiUpdates: false   # the JSON in the repo is the source of truth; "Save as" to experiment
     updateIntervalSeconds: 300
     options:
-      path: /etc/grafana/provisioning/dashboards/claude-usage
+      path: ${GF_PATHS_PROVISIONING}/dashboards/claude-usage   # follows a relocated provisioning dir
