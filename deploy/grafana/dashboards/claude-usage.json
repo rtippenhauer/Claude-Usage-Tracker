@@ -1,0 +1,668 @@
+{
+  "uid": "claude-usage",
+  "title": "Claude Usage",
+  "tags": [
+    "claude"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "1h",
+  "time": {
+    "from": "now-30d",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "account",
+        "label": "Account",
+        "type": "custom",
+        "query": "work,personal",
+        "multi": true,
+        "includeAll": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "options": []
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Context tokens",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "claude-usage-sqlite"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "claude-usage-sqlite"
+          },
+          "queryType": "table",
+          "queryText": "SELECT SUM(input_tokens + cache_create_tokens + cache_read_tokens) AS value FROM messages WHERE ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND account IN (${account:sqlstring})",
+          "rawQueryText": "SELECT SUM(input_tokens + cache_create_tokens + cache_read_tokens) AS value FROM messages WHERE ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND account IN (${account:sqlstring})",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Output tokens",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "claude-usage-sqlite"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "claude-usage-sqlite"
+          },
+          "queryType": "table",
+          "queryText": "SELECT SUM(output_tokens) AS value FROM messages WHERE ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND account IN (${account:sqlstring})",
+          "rawQueryText": "SELECT SUM(output_tokens) AS value FROM messages WHERE ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND account IN (${account:sqlstring})",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Cache hit ratio",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "claude-usage-sqlite"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "claude-usage-sqlite"
+          },
+          "queryType": "table",
+          "queryText": "SELECT 1.0 * SUM(cache_read_tokens) / NULLIF(SUM(input_tokens + cache_create_tokens + cache_read_tokens), 0) AS value FROM messages WHERE ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND account IN (${account:sqlstring})",
+          "rawQueryText": "SELECT 1.0 * SUM(cache_read_tokens) / NULLIF(SUM(input_tokens + cache_create_tokens + cache_read_tokens), 0) AS value FROM messages WHERE ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND account IN (${account:sqlstring})",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          },
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Sessions",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "claude-usage-sqlite"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "claude-usage-sqlite"
+          },
+          "queryType": "table",
+          "queryText": "SELECT COUNT(DISTINCT session_id) AS value FROM messages WHERE ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND account IN (${account:sqlstring})",
+          "rawQueryText": "SELECT COUNT(DISTINCT session_id) AS value FROM messages WHERE ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND account IN (${account:sqlstring})",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value"
+      }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Daily context tokens by model",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "claude-usage-sqlite"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "claude-usage-sqlite"
+          },
+          "queryType": "time series",
+          "queryText": "SELECT CAST(strftime('%s', date(ts, 'localtime'), 'utc') AS INTEGER) AS time, COALESCE(model, 'unknown') AS model, SUM(input_tokens + cache_create_tokens + cache_read_tokens) AS context FROM messages WHERE ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND account IN (${account:sqlstring}) GROUP BY 1, 2 ORDER BY 1",
+          "rawQueryText": "SELECT CAST(strftime('%s', date(ts, 'localtime'), 'utc') AS INTEGER) AS time, COALESCE(model, 'unknown') AS model, SUM(input_tokens + cache_create_tokens + cache_read_tokens) AS context FROM messages WHERE ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND account IN (${account:sqlstring}) GROUP BY 1, 2 ORDER BY 1",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Daily context tokens by account",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "claude-usage-sqlite"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "claude-usage-sqlite"
+          },
+          "queryType": "time series",
+          "queryText": "SELECT CAST(strftime('%s', date(ts, 'localtime'), 'utc') AS INTEGER) AS time, account, SUM(input_tokens + cache_create_tokens + cache_read_tokens) AS context FROM messages WHERE ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND account IN (${account:sqlstring}) GROUP BY 1, 2 ORDER BY 1",
+          "rawQueryText": "SELECT CAST(strftime('%s', date(ts, 'localtime'), 'utc') AS INTEGER) AS time, account, SUM(input_tokens + cache_create_tokens + cache_read_tokens) AS context FROM messages WHERE ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND account IN (${account:sqlstring}) GROUP BY 1, 2 ORDER BY 1",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Scheduled tasks (desktop local-agent) \u2014 daily context by model",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "claude-usage-sqlite"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 13,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "claude-usage-sqlite"
+          },
+          "queryType": "time series",
+          "queryText": "SELECT CAST(strftime('%s', date(m.ts, 'localtime'), 'utc') AS INTEGER) AS time, COALESCE(m.model, 'unknown') AS model, SUM(m.input_tokens + m.cache_create_tokens + m.cache_read_tokens) AS context FROM messages m JOIN sessions s ON s.session_id = m.session_id WHERE s.entrypoint = 'local-agent' AND m.ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND m.ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND m.account IN (${account:sqlstring}) GROUP BY 1, 2 ORDER BY 1",
+          "rawQueryText": "SELECT CAST(strftime('%s', date(m.ts, 'localtime'), 'utc') AS INTEGER) AS time, COALESCE(m.model, 'unknown') AS model, SUM(m.input_tokens + m.cache_create_tokens + m.cache_read_tokens) AS context FROM messages m JOIN sessions s ON s.session_id = m.session_id WHERE s.entrypoint = 'local-agent' AND m.ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND m.ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND m.account IN (${account:sqlstring}) GROUP BY 1, 2 ORDER BY 1",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Main vs subagent context",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "claude-usage-sqlite"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 13,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "claude-usage-sqlite"
+          },
+          "queryType": "time series",
+          "queryText": "SELECT CAST(strftime('%s', date(ts, 'localtime'), 'utc') AS INTEGER) AS time, CASE WHEN is_sidechain = 1 THEN 'subagent' ELSE 'main' END AS kind, SUM(input_tokens + cache_create_tokens + cache_read_tokens) AS context FROM messages WHERE ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND account IN (${account:sqlstring}) GROUP BY 1, 2 ORDER BY 1",
+          "rawQueryText": "SELECT CAST(strftime('%s', date(ts, 'localtime'), 'utc') AS INTEGER) AS time, CASE WHEN is_sidechain = 1 THEN 'subagent' ELSE 'main' END AS kind, SUM(input_tokens + cache_create_tokens + cache_read_tokens) AS context FROM messages WHERE ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND account IN (${account:sqlstring}) GROUP BY 1, 2 ORDER BY 1",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Collectors",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "claude-usage-sqlite"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "claude-usage-sqlite"
+          },
+          "queryType": "table",
+          "queryText": "SELECT machine, account, last_seen, collector_version, ROUND((julianday('now') - julianday(last_seen)) * 24, 1) AS hours_since FROM machines ORDER BY last_seen DESC",
+          "rawQueryText": "SELECT machine, account, last_seen, collector_version, ROUND((julianday('now') - julianday(last_seen)) * 24, 1) AS hours_since FROM machines ORDER BY last_seen DESC",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "hours_since"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 2
+                    },
+                    {
+                      "color": "red",
+                      "value": 6
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Open findings (top by est. waste)",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "claude-usage-sqlite"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 22,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "claude-usage-sqlite"
+          },
+          "queryType": "table",
+          "queryText": "SELECT severity, analyzer, account, title, est_tokens_wasted FROM findings WHERE resolved = 0 AND (account IN (${account:sqlstring}) OR account = 'shared') ORDER BY COALESCE(est_tokens_wasted, 0) DESC LIMIT 50",
+          "rawQueryText": "SELECT severity, analyzer, account, title, est_tokens_wasted FROM findings WHERE resolved = 0 AND (account IN (${account:sqlstring}) OR account = 'shared') ORDER BY COALESCE(est_tokens_wasted, 0) DESC LIMIT 50",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Top sessions by context",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "claude-usage-sqlite"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 29,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "claude-usage-sqlite"
+          },
+          "queryType": "table",
+          "queryText": "SELECT first_ts, account, entrypoint, project_dir, models, calls, context_tokens, output_tokens, peak_context, ROUND(cache_hit_ratio, 3) AS cache_hit_ratio FROM v_session_totals WHERE first_ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND first_ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND account IN (${account:sqlstring}) AND calls > 0 ORDER BY context_tokens DESC LIMIT 25",
+          "rawQueryText": "SELECT first_ts, account, entrypoint, project_dir, models, calls, context_tokens, output_tokens, peak_context, ROUND(cache_hit_ratio, 3) AS cache_hit_ratio FROM v_session_totals WHERE first_ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND first_ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND account IN (${account:sqlstring}) AND calls > 0 ORDER BY context_tokens DESC LIMIT 25",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Tools by result size",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "claude-usage-sqlite"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "claude-usage-sqlite"
+          },
+          "queryType": "table",
+          "queryText": "SELECT tool_name, COUNT(*) AS calls, SUM(COALESCE(result_chars, 0)) / 4 AS est_result_tokens FROM tool_calls WHERE ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND account IN (${account:sqlstring}) GROUP BY tool_name ORDER BY 3 DESC LIMIT 20",
+          "rawQueryText": "SELECT tool_name, COUNT(*) AS calls, SUM(COALESCE(result_chars, 0)) / 4 AS est_result_tokens FROM tool_calls WHERE ts >= strftime('%Y-%m-%dT%H:%M:%S', $__from/1000, 'unixepoch') AND ts < strftime('%Y-%m-%dT%H:%M:%S', $__to/1000, 'unixepoch') AND account IN (${account:sqlstring}) GROUP BY tool_name ORDER BY 3 DESC LIMIT 20",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      }
+    }
+  ]
+}

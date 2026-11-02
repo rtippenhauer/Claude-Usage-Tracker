@@ -1,0 +1,14 @@
+# Grafana reads tracker.db directly. Mount the tracker's data folder into Grafana read-only:
+#   /mnt/user/appdata/claude-usage-tracker/data  ->  /tracker  (ro)
+# mode=ro matters: without it SQLite silently creates an empty tracker.db if the path is wrong.
+apiVersion: 1
+datasources:
+  - name: Claude Usage
+    uid: claude-usage-sqlite
+    type: frser-sqlite-datasource
+    access: proxy
+    editable: false
+    jsonData:
+      path: /tracker/tracker.db
+      pathPrefix: "file:"
+      pathOptions: "?mode=ro"
