@@ -1,7 +1,8 @@
 # Windows: register an hourly Task Scheduler job for the collector. Run once in PowerShell (as your user):
 #   powershell -ExecutionPolicy Bypass -File deploy\collector.ps1
 $repo = Split-Path $PSScriptRoot -Parent
-$py   = (Get-Command python).Source
+# pythonw: no console window pops up every hour (prints are discarded)
+$py   = Join-Path (Split-Path (Get-Command python).Source) "pythonw.exe"
 $act  = New-ScheduledTaskAction -Execute $py -Argument "collector\collect.py run" -WorkingDirectory $repo
 # explicit duration: left out, some Windows builds stop repeating after one day
 $trg  = New-ScheduledTaskTrigger -Once -At (Get-Date) -RepetitionInterval (New-TimeSpan -Hours 1) -RepetitionDuration (New-TimeSpan -Days 3650)
