@@ -1,6 +1,8 @@
-# Grafana reads tracker.db directly. Mount the tracker's data folder into Grafana read-only:
-#   /mnt/user/appdata/claude-usage-tracker/data  ->  /tracker  (ro)
-# mode=ro matters: without it SQLite silently creates an empty tracker.db if the path is wrong.
+# Grafana reads tracker.db directly. Mount the tracker's data folder into Grafana:
+#   /mnt/user/appdata/claude-usage-tracker/data  ->  /tracker  (rw)
+# The mount must be read-write: the DB is in WAL mode and even a read-only reader has to create
+# tracker.db-shm (a ro mount fails with "unable to open database file (14)").
+# mode=ro keeps Grafana from writing data, and stops SQLite creating an empty tracker.db if the path is wrong.
 apiVersion: 1
 datasources:
   - name: Claude Usage
